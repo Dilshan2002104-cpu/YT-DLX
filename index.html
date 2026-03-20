@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>YT Downloader</title>
+    <!-- Content Security Policy specifically required by Electron -->
+    <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://img.youtube.com;">
+    <style>
+        :root {
+            --primary: #FF0000;
+            --primary-hover: #CC0000;
+            --bg-body: #0F0F0F;
+            --bg-card: #212121;
+            --text-main: #FFFFFF;
+            --text-muted: #AAAAAA;
+            --border-color: #3D3D3D;
+            --success: #00E676;
+            --error: #FF4E4E;
+            --warning: #FFAB00;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+            user-select: none;
+            overflow: hidden;
+            /* completely prevent scrollbars */
+        }
+
+        .container {
+            background: var(--bg-card);
+            padding: 32px 35px;
+            /* slightly slim down padding */
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+            width: 100%;
+            max-width: 550px;
+            text-align: center;
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        h1 {
+            margin-top: 0;
+            font-weight: 800;
+            font-size: 26px;
+            letter-spacing: -0.5px;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        h1 svg {
+            width: 32px;
+            height: 32px;
+            fill: var(--primary);
+        }
+
+        p.subtitle {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-bottom: 26px;
+            margin-top: 0;
+        }
+
+        /* Thumbnail Styles */
+        .thumbnail-container {
+            width: 100%;
+            height: 0;
+            overflow: hidden;
+            border-radius: 12px;
+            margin-bottom: 0;
+            transition: height 0.4s cubic-bezier(0.4, 0, 0.2, 1), margin-bottom 0.4s;
+            position: relative;
+            background-color: #121212;
+        }
+
+        .thumbnail-container.active {
+            height: 170px;
+            margin-bottom: 22px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--border-color);
+        }
+
+        #thumbnailImg {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        #thumbnailImg.loaded {
+            opacity: 1;
+        }
+
+        .thumbnail-title {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 40px 15px 12px 15px;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0) 100%);
+            color: #fff;
+            font-size: 14px;
+            font-weight: 600;
+            text-align: left;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            z-index: 2;
+        }
+
+        .thumbnail-title.loaded {
+            opacity: 1;
+        }
+
+        .input-group {
+            text-align: left;
+            margin-bottom: 22px;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+        }
+
+        input[type="text"],
+        select {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 14px 16px;
+            font-size: 15px;
+            background-color: #121212;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            color: var(--text-main);
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        input[type="text"]::placeholder {
+            color: #666;
+        }
+
+        select {
+            cursor: pointer;
+            appearance: none;
+            background-image: url('data:image/svg+xml;utf8,<svg fill="%23FFFFFF" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>');
+            background-repeat: no-repeat;
+            background-position-x: 95%;
+            background-position-y: 50%;
+        }
+
+        input[type="text"]:focus,
+        select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(255, 0, 0, 0.15);
+        }
+
+        button {
+            width: 100%;
+            padding: 16px;
+            font-size: 16px;
+            font-weight: 700;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        button svg {
+            width: 20px;
+            height: 20px;
+            fill: white;
+        }
+
+        button:hover:not(:disabled) {
+            background: var(--primary-hover);
+        }
+
+        button:active:not(:disabled) {
+            transform: scale(0.97);
+        }
+
+        button:disabled {
+            background: var(--border-color);
+            color: var(--text-muted);
+            cursor: not-allowed;
+            opacity: 0.8;
+        }
+
+        button:disabled svg {
+            fill: var(--text-muted);
+        }
+
+        button.cancel-btn {
+            background: #333;
+        }
+
+        button.cancel-btn:hover:not(:disabled) {
+            background: #4a4a4a;
+        }
+
+        #status {
+            margin-top: 24px;
+            font-weight: 500;
+            font-size: 14px;
+            min-height: 20px;
+            word-wrap: break-word;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        #status.visible {
+            opacity: 1;
+        }
+
+        .success {
+            color: var(--success);
+        }
+
+        .error {
+            color: var(--error);
+        }
+
+        .downloading {
+            color: var(--text-muted);
+        }
+
+        #progressContainer {
+            margin-top: 24px;
+            display: none;
+            animation: fadeIn 0.4s ease-in-out;
+        }
+
+        .progress-track {
+            width: 100%;
+            background-color: var(--bg-body);
+            border-radius: 10px;
+            overflow: hidden;
+            height: 10px;
+        }
+
+        #progressBar {
+            width: 0%;
+            height: 100%;
+            background: var(--primary);
+            transition: width 0.3s ease-out;
+            border-radius: 10px;
+            position: relative;
+        }
+
+        /* Pulsing animation when downloading */
+        #progressBar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg,
+                    rgba(255, 255, 255, 0) 0%,
+                    rgba(255, 255, 255, 0.3) 50%,
+                    rgba(255, 255, 255, 0) 100%);
+            animation: shimmer 1.5s infinite linear;
+        }
+
+        @keyframes shimmer {
+            0% {
+                transform: translateX(-100%);
+            }
+
+            100% {
+                transform: translateX(100%);
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .progress-stats {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+            font-size: 13px;
+            color: var(--text-muted);
+            font-variant-numeric: tabular-nums;
+            font-weight: 500;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>
+            <svg viewBox="0 0 24 24">
+                <path
+                    d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z" />
+            </svg>
+            YouTube Downloader
+        </h1>
+        <p class="subtitle">Quick and seamless video downloads</p>
+
+        <div id="thumbnailContainer" class="thumbnail-container">
+            <img id="thumbnailImg" src="" alt="Thumbnail Video">
+            <div id="thumbnailTitle" class="thumbnail-title">Fetching title...</div>
+        </div>
+
+        <div class="input-group">
+            <label for="urlInput">Video Link</label>
+            <input type="text" id="urlInput" placeholder="https://youtube.com/watch?v=..." autocomplete="off">
+        </div>
+
+        <div class="input-group">
+            <label for="qualitySelect">Video Quality</label>
+            <select id="qualitySelect">
+                <option value="best">Best Available (Default)</option>
+                <option value="1080">1080p (FHD)</option>
+                <option value="720">720p (HD)</option>
+                <option value="480">480p (SD)</option>
+                <option value="audio">Audio Only (MP3)</option>
+            </select>
+        </div>
+
+        <button id="downloadBtn">
+            <svg viewBox="0 0 24 24">
+                <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" />
+            </svg>
+            Download Now
+        </button>
+
+        <button id="cancelBtn" class="cancel-btn" style="display: none;">
+            <svg viewBox="0 0 24 24">
+                <path
+                    d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+            </svg>
+            Cancel Download
+        </button>
+
+        <button id="openFolderBtn" class="cancel-btn" style="display: none; margin-top: 12px;">
+            <svg viewBox="0 0 24 24">
+                <path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z" />
+            </svg>
+            Open Download Folder
+        </button>
+
+        <div id="progressContainer">
+            <div class="progress-track">
+                <div id="progressBar"></div>
+            </div>
+            <div class="progress-stats">
+                <span id="progressText">0%</span>
+                <span id="speedText">-- MB/s</span>
+            </div>
+        </div>
+
+        <p id="status"></p>
+    </div>
+    <script src="./renderer.js"></script>
+</body>
+
+</html>

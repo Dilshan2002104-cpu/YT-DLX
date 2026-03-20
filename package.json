@@ -1,0 +1,31 @@
+{
+  "name": "downloader",
+  "version": "1.0.0",
+  "description": "YouTube Video Downloader",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron . --no-sandbox",
+    "build": "electron-builder --linux",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "build": {
+    "appId": "com.dilshan.ytdownloader",
+    "productName": "Youtube Downloader",
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Network",
+      "maintainer": "Dilshan <dilshan@example.com>"
+    }
+  },
+  "keywords": [],
+  "author": "Dilshan <dilshan@example.com>",
+  "homepage": "https://github.com/dilshan/downloader",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^41.0.3",
+    "electron-builder": "^24.13.3"
+  }
+}
