@@ -18,6 +18,17 @@
       ],
       "category": "Network",
       "maintainer": "Dilshan <dilshan@example.com>"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "icon.ico"
+    },
+    "nsis": {
+      "shortcutName": "Youtube Downloader",
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
     }
   },
   "keywords": [],
